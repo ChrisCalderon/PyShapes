@@ -1,35 +1,96 @@
 import turtle
-from collections import namedtuple
-from operator import mul
-from math import sin, cos, pi, atan
-turtle.tracer(False)
-Point3D = namedtuple("Point3D", ["x", "y", "z", "tag"])
-vertices = [Point3D(*junk) for junk in [map(lambda x: (1-2*bool(i&(1<<x)))*100, range(3))+[i] for i in range(8)]]
-pairs = sum([[(vertex, other_vertex) for other_vertex in vertices[i+1:]] for i, vertex in enumerate(vertices)], [])
-edges = map(lambda edge: [[u.x+200, u.y, u.z] for u in edge], filter(lambda vertex_pair: sum(map(int, bin(vertex_pair[0].tag^vertex_pair[1].tag)[2:]))==1, pairs))
-def makePoint(data):
-	return lambda cmd: data[0] if cmd=="x" else (data[1] if cmd=="y" else (data[2] if cmd=="z" else "undefined"))
-def multiply(A, B):
-	return map(lambda row: map(lambda column: sum(map(mul, row, column)), zip(*B)), A)
-def rotate(point, xangle=0, yangle=0, zangle=0):
-	x_matrix = [[1, 0, 0], [0, cos(xangle), -sin(xangle)],[0, sin(xangle), cos(xangle)]]
-	y_matrix = [[cos(yangle), 0, sin(yangle)],[0, 1, 0],[-sin(yangle), 0, cos(yangle)]]
-	z_matrix = [[cos(zangle), -sin(zangle), 0],[sin(zangle), cos(zangle), 0],[0, 0, 1]]
-	return zip(*reduce(multiply, [x_matrix, y_matrix, z_matrix, zip(*point)]))
-def draw_cube(edges):
-	if edges==[]:
-		turtle.update()
+import time
+from vector import Vector
+from math import pi, cos, sin
+
+I, J, K = Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)
+
+PATHS = (3, 1, 0, 2, 3, 7, 6, 4, 5, 7), (2, 6), (0, 4), (1, 5) 
+
+class Cube(object):
+	def __init__(self, start_point, side_length):
+		self.vertices = []
+		append = self.vertices.append
+		start_point = Vector(*(start_point))
+		for i in range(8):
+			x, y, z = (i&4)>>2, (i&2)>>1, i&1
+			point = Vector(x, y, z)
+			point *= side_length 
+			point -= start_point
+			append(point)
+		self.i = start_point - side_length*(I+J+K)
+		self.i = 1.0/abs(self.i)*self.i
+
+	def __getitem__(self, *args):
+		return self.vertices.__getitem__(*args)[:2]
+
+	def rotate(self, theta, u=None):
+		if u==None:
+			u = self.i
+		if abs(u) != 1:
+			u *= 1.0/abs(u)
+		cos_ = cos(theta)
+		cos_1 = 1 - cos_
+		ux2cos = u.x**2*cos_1
+		uy2cos = u.y**2*cos_1
+		uz2cos = u.y**2*cos_1
+		uxycos = u.x*u.y*cos_1
+		uyzcos = u.y*u.z*cos_1
+		uxzcos = u.x*u.z*cos_1
+		sin_ = sin(theta)
+		uxsin = u.x*sin_
+		uysin = u.y*sin_
+		uzsin = u.z*sin_
+
+		Rx = Vector(cos_ + ux2cos, uxycos - uzsin, uxzcos + uysin)
+		Ry = Vector(uxycos + uzsin, cos_ + uy2cos, uyzcos - uxsin)
+		Rz = Vector(uxzcos - uysin, uyzcos + uxsin, cos_ + uz2cos)
+
+		for v in self.vertices:
+			v.x, v.y, v.z = v*Rx, v*Ry, v*Rz
 		return
-	edge = edges.pop()
-	turtle.up()
-	turtle.goto(edge[0][:2])
-	turtle.down()
-	turtle.goto(edge[1][:2])
-	return draw_cube(edges)
-def animated_cube(cube, xstep, ystep, zstep):
+
+	def draw(self):
+		turtle.up()
+		turtle.goto(self[3])
+		turtle.down()
+		turtle.goto(self[1])
+		turtle.goto(self[0])
+		turtle.goto(self[2])
+		turtle.goto(self[3])
+		turtle.goto(self[7])
+		turtle.goto(self[6])
+		turtle.goto(self[4])
+		turtle.goto(self[5])
+		turtle.goto(self[7])
+		turtle.up()
+		turtle.goto(self[2])
+		turtle.down()
+		turtle.goto(self[6])
+		turtle.up()
+		turtle.goto(self[0])
+		turtle.down()
+		turtle.goto(self[4])
+		turtle.up()
+		turtle.goto(self[1])
+		turtle.down()
+		turtle.goto(self[5])
+		return
+
+def main(cubes, theta):
+	turtle.tracer(False)
 	while True:
-		draw_cube(cube[:])
-		cube = [[rotate([point], xstep, ystep, zstep)[0] for point in edge] for edge in cube]
+		start = time.clock()
+		[cube.draw() for cube in cubes]
+		[cube.rotate(theta) for cube in cubes]
+		message = "Frame rate: %3.2f frames/sec." % (1/(time.clock() - start))
+		turtle.up()
+		turtle.goto(0,0)
+		turtle.write(message, font=("Arial", 18, "normal"))
+		turtle.down()
+		turtle.update()
 		turtle.clear()
-animated_cube(edges, pi/2000, pi/2000, pi/2000)
-turtle.mainloop()
+
+if __name__=="__main__":
+	cubes = sum([[Cube([450-200*i,450-200*j,-100], 100) for i in range(5)] for j in range(5)], [])
+	main(cubes, pi/200)
