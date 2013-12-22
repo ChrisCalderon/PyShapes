@@ -48,9 +48,7 @@ class Vector(object):
 		return Vector(self.x+other, self.y+other, self.z+other)
 
 	def __mul__(self, other):
-		if isinstance(other, Vector):
-			return sum(map(mul, self, other))
-		return Vector(self.x*other, self.y*other, self.z*other)
+		return sum(map(mul, self, other))
 
 	def __sub__(self, other):
 		return self + -other
@@ -62,7 +60,7 @@ class Vector(object):
 		return self + other
 
 	def __rmul__(self, other):
-		return self*other
+		return Vector(self.x*other, self.y*other, self.z*other)
 
 	def __rsub__(self, other):
 		return other + -self
