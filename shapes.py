@@ -8,9 +8,9 @@ I, J, K = Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)
 
 class Shape(object):
 	def __init__(self, start_point, *args):
-		self._make_vertices(start_point, *args)
+		self.make_vertices(start_point, *args)
 
-	def _make_vertices(self, start_point, *args):
+	def make_vertices(self, start_point, *args):
 		print "Not Implemented: __make_vertices"
 
 	def rotate(self, theta, u):
@@ -39,15 +39,44 @@ class Shape(object):
 	def draw(self):
 		print "Not Implemented: draw"
 
-class Cube(Shape):
-	def __init__(self, start_point, side_length):
-		"""start_point is the fron upper right (your right) corner of the cube."""
-		Shape.__init__(self, start_point, side_length)
-
-	def _make_vertices(self, start_point, side_length):
+class Tetrahedron(Shape):
+	def make_vertices(self, start_point, side_length):
+		"""start_point is the top point."""
 		vertices = []
 		append = vertices.append
-		start_point = Vector(*(start_point))
+		start_point = Vector(*start_point)
+		height = 6**0.5/3*side_length
+		base_alt = cos(pi/6)*side_length
+		long_half = 2*base_alt/3
+		append(start_point)
+		append(vertices[-1] - height*K - long_half*I)
+		append(vertices[-1] + base_alt*I + .5*side_length*J)
+		append(vertices[-1] - side_length*J)
+		self.vertices = vertices
+
+	def __getitem__(self, *args):
+		return self.vertices.__getitem__(*args)[:2]
+
+	def draw(self):
+		turtle.up()
+		turtle.goto(self[0])
+		turtle.down()
+		turtle.goto(self[3])
+		turtle.goto(self[2])
+		turtle.goto(self[0])
+		turtle.goto(self[1])
+		turtle.goto(self[2])
+		turtle.goto(self[3])
+		turtle.goto(self[1])
+		return
+
+
+class Cube(Shape):
+	def make_vertices(self, start_point, side_length):
+		"""start_point is the upper right front corner."""
+		vertices = []
+		append = vertices.append
+		start_point = Vector(*start_point)
 		i, j, k = side_length*I, side_length*J, side_length*K
 		append(start_point)
 		append(vertices[-1] - k)
@@ -80,44 +109,65 @@ class Cube(Shape):
 		turtle.goto(self[2])
 		turtle.goto(self[5])
 		turtle.goto(self[4])
-		turtle.goto(self[3])
+		turtle.goto(self[3])	
 		return
 
-def main(cubes, theta, axis=None):
+def main(shapes, rotations, theta, axes):
 	turtle.tracer(False)
-	while True:
+	axes = [1/abs(axis)*axis for axis in axes]
+	stuff = zip(shapes, axes)
+	for _ in xrange(rotations):
 		start = time.clock()
-		[cube.draw() for cube in cubes]
-		[cube.rotate(theta, axis) for cube in cubes]
-		message = "Frame rate: %3.2f frames/sec." % (1/(time.clock() - start))
-		turtle.up()
-		turtle.goto(0,0)
-		turtle.write(message, font=("Arial", 18, "normal"))
-		turtle.down()
+		[shape.draw() for shape in shapes]
+		[shape.rotate(theta, axis) for shape, axis in stuff]
 		turtle.update()
 		turtle.clear()
+		sys.stdout.write("Frame rate: %3.2f frames/sec.\r" % (1/(time.clock() - start)))
+		sys.stdout.flush()
 
-def main_(cube, rotations, theta, axis=None):
+def main_(shape, rotations, theta, axis):
 	turtle.tracer(False)
 	d = abs(axis)
 	if d != 1:
 		axis *= 1./d
+	draw = shape.draw
+	rotate = shape.rotate
 	for _ in xrange(rotations):
 		start = time.clock()
-		cube.draw()
-		cube.rotate(theta, axis)
-		message = "Frame rate: %3.2f frames/sec.\r" % (1/(time.clock() - start))
-		print message,
-		sys.stdout.flush()
+		draw()
+		rotate(theta, axis)
 		#turtle.up()
 		#turtle.goto(0,0)
 		#turtle.write(message, font=("Arial", 18, "normal"))
 		#turtle.down()
 		turtle.update()
 		turtle.clear()
+		sys.stdout.write("Frame rate: %3.2f frames/sec.\r" % (1/(time.clock() - start)))
+		sys.stdout.flush()
 
 if __name__=="__main__":
+	#import cProfile
 	#cubes = sum([[Cube([450-200*i,450-200*j,-100], 100) for i in range(5)] for j in range(5)], [])
 	#main(cubes, pi/20, I+J)
-	main_(Cube([100,100,100], 200), 1000, pi/200, I+J+K)
+	#main_(Tetrahedron([0,0,100], 200), 1000, pi/200, I+J+K)
+	#cProfile.run("main_(Cube([100,100,100], 200), 1000, pi/200, I+J+K)")
+	import random
+	shapes = []
+	axes = []
+	for i in range(16):
+		x = random.randrange(-400,400)
+		y = random.randrange(-400,400)
+		z = random.randrange(-400,400)
+		side_length = random.randrange(200)
+		if i&1:
+			shapes.append(Tetrahedron([x,y,z], side_length))
+		else:
+			shapes.append(Cube([x,y,z], side_length))
+		i = random.randrange(-5,5)
+		j = random.randrange(-5,5)
+		k = random.randrange(-10,10)
+		axes.append(i*I+j*J+k*K)
+	main(shapes, 2000, pi/200, axes)
+
+
 	
