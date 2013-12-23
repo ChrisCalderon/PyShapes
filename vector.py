@@ -1,4 +1,5 @@
 from operator import add, mul
+from math import acos
 
 class Vector(object):
 	def __init__(self, x, y, z):
@@ -96,3 +97,6 @@ class Vector(object):
 
 	def __abs__(self):
 		return (self*self)**0.5
+
+	def angle(self, other):
+		return acos(self*other/(abs(self)*abs(other)))
