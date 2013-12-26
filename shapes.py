@@ -62,10 +62,10 @@ class Shape(object):
 			t3 = cy*z + sy*t1
 			y_ = sx*t3 + cx*t2
 			z_ = cx*t3 - sx*t2
-			t4 = c/z_
-			newx = t4*x_ - a
-			newy = t4*y_ - b
-			append((newx, newy))
+			t4 = a/x_
+			newx = t4*y_ - b
+			newy = t4*z_ - c
+			append((-newx, -newy)) #perspective images are flipped, so flip it the right way
 		return transformed_vertices
 
 	def draw(self):
@@ -86,15 +86,15 @@ class Tetrahedron(Shape):
 		append(vertices[-1] - side_length*J)
 		self.vertices = vertices
 
-	def draw(self):
-		#vs = self.apply_perspective(Vector(1000,0,1000), Vector(0, -pi/2, 0), Vector(1100, 0, 1000))
-		vs = [(y, z) for (x, y ,z) in self.vertices]
+	@staticmethod
+	def draw(vs):
 		turtle.up()
 		turtle.goto(vs[0])
 		turtle.down()
 		turtle.goto(vs[3])
 		turtle.goto(vs[2])
 		turtle.goto(vs[0])
+		turtle.end_fill()
 		turtle.goto(vs[1])
 		turtle.goto(vs[2])
 		turtle.goto(vs[3])
@@ -118,9 +118,8 @@ class Cube(Shape):
 		append(vertices[-1] + k)
 		self.vertices = vertices
 
-	def draw(self):
-		#vs = self.apply_perspective(Vector(1000,0,1000), Vector(0, -pi/2, 0), Vector(1200, 0, 1000))
-		vs = [(y, z) for (x, y, z) in self.vertices]
+	@staticmethod
+	def draw(vs):
 		turtle.up()
 		turtle.goto(vs[0])
 		turtle.down()
@@ -128,6 +127,7 @@ class Cube(Shape):
 		turtle.goto(vs[2])
 		turtle.goto(vs[3])
 		turtle.goto(vs[0])
+		turtle.end_fill()
 		turtle.goto(vs[7])
 		turtle.goto(vs[6])
 		turtle.goto(vs[5])
@@ -141,18 +141,33 @@ class Cube(Shape):
 		turtle.goto(vs[3])	
 		return
 
-def main(shapes, rotations, theta):
+def demo(shapes, rotations, theta):
 	turtle.tracer(False)
+	#turtle.color("black", "blue")
 	axis = I + J + K
 	axis *= 1./abs(axis)
-	for _ in xrange(rotations):
-		start = time.clock()
-		[shape.draw() for shape in shapes]
-		[shape.rotate(theta, axis, shape.vertices[0]) for shape in shapes]
-		turtle.update()
-		turtle.clear()
-		sys.stdout.write("Frame rate: %3.2f frames/sec.\r" % (1/(time.clock() - start)))
-		sys.stdout.flush()
+	camera_pos = Vector(1000, 0, 0)
+	viewer_pos = Vector(1500, 0, 0)
+	orientation = Vector(0, 0, 0)
+	try:
+		for axis in (I, J, K):
+			step = pi/1000*axis
+			for _ in range(2000):
+				start = time.clock()
+				[shape.draw(shape.apply_perspective(camera_pos, orientation, viewer_pos)) for shape in shapes]
+				#[shape.rotate(theta, axis, shape.vertices[0]) for shape in shapes]
+				turtle.update()
+				turtle.clear()
+				orientation += step
+				x, y, z = [(i%(2*pi))/pi*180 for i in orientation]
+				fps = 1/(time.clock() - start)
+				sys.stdout.write("Frame rate: %3.2f frames/sec. Orientation: x ~ %3.2f degrees, y ~ %3.2f degrees, z ~ %3.2f degrees.\r" % (fps, x, y, z))
+				sys.stdout.flush()
+	except KeyboardInterrupt:
+		pass
+	finally:
+		sys.stdout.write("\n")
+		turtle.bye()
 
 if __name__=="__main__":
 	#import cProfile
@@ -163,16 +178,16 @@ if __name__=="__main__":
 	import random
 	shapes = []
 	for i in range(25):
-		x = random.randrange(-400,400)
-		y = random.randrange(-400,400)
-		z = random.randrange(-400,400)
+		x = random.randrange(-401,-1)
+		y = random.randrange(-1000,1000)
+		z = random.randrange(-1000,1000)
 		side_length = 100
 		if i&1:
 			shapes.append(Tetrahedron([x,y,z], side_length))	
 		else:
 			shapes.append(Cube([x,y,z], side_length))
 
-	main(shapes, 20000, pi/200)
+	demo(shapes, 20000, pi/200)
 
 
 	
