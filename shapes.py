@@ -228,6 +228,4 @@ if __name__=="__main__":
 			shapes.append(Cube([x,y,z], side_length))
 
 	demo(shapes)
-
-
 	
