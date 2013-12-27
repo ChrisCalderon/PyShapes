@@ -19,7 +19,7 @@ class Shape(object):
 
 	def rotate(self, theta, d, point=(0,0,0)):
 		"""Rotates every vertex by theta radians about the line through point
-		with in the direction of vector d (which must be a unit vector.)"""
+		in the direction of vector d (which must be a unit vector.)"""
 		cos_ = cos(theta)
 		cos_1 = 1 - cos_
 		sin_ = sin(theta)
@@ -49,6 +49,7 @@ class Shape(object):
 		return
 
 	def apply_perspective(self, camera_pos, orientation, viewer_pos):
+		#The plane that points are projected onto is y/z plane.
 		a, b, c = viewer_pos
 		cx, cy, cz = map(cos, orientation)
 		sx, sy, sz = map(sin, orientation)
@@ -94,7 +95,6 @@ class Tetrahedron(Shape):
 		turtle.goto(vs[3])
 		turtle.goto(vs[2])
 		turtle.goto(vs[0])
-		turtle.end_fill()
 		turtle.goto(vs[1])
 		turtle.goto(vs[2])
 		turtle.goto(vs[3])
@@ -127,7 +127,6 @@ class Cube(Shape):
 		turtle.goto(vs[2])
 		turtle.goto(vs[3])
 		turtle.goto(vs[0])
-		turtle.end_fill()
 		turtle.goto(vs[7])
 		turtle.goto(vs[6])
 		turtle.goto(vs[5])
@@ -141,28 +140,74 @@ class Cube(Shape):
 		turtle.goto(vs[3])	
 		return
 
-def demo(shapes, rotations, theta):
+def demo(shapes):
+	def draw_shapes():
+		[shape.draw(shape.apply_perspective(camera_pos, orientation, viewer_pos)) for shape in shapes]
+		turtle.update()
+		turtle.clear()
+
+	def print_(string):
+		sys.stdout.write(string + "\r")
+		sys.stdout.flush()
+
 	turtle.tracer(False)
-	#turtle.color("black", "blue")
 	axis = I + J + K
 	axis *= 1./abs(axis)
-	camera_pos = Vector(1000, 0, 0)
+	camera_pos = Vector(250, 0, 0)
 	viewer_pos = Vector(1500, 0, 0)
 	orientation = Vector(0, 0, 0)
+
 	try:
-		for axis in (I, J, K):
-			step = pi/1000*axis
-			for _ in range(2000):
+		print "Demoing changing camera orientation."
+		for i, axis in enumerate((I, J, K)):
+			step = pi/100*axis
+			axis_name = "x" if axis == I else ("y" if axis == J else "z")
+			for _ in range(200):
 				start = time.clock()
-				[shape.draw(shape.apply_perspective(camera_pos, orientation, viewer_pos)) for shape in shapes]
-				#[shape.rotate(theta, axis, shape.vertices[0]) for shape in shapes]
-				turtle.update()
-				turtle.clear()
+				draw_shapes()
 				orientation += step
-				x, y, z = [(i%(2*pi))/pi*180 for i in orientation]
+				degrees = (orientation[i]%(2*pi))*180/pi #convert radians -> degrees
 				fps = 1/(time.clock() - start)
-				sys.stdout.write("Frame rate: %3.2f frames/sec. Orientation: x ~ %3.2f degrees, y ~ %3.2f degrees, z ~ %3.2f degrees.\r" % (fps, x, y, z))
-				sys.stdout.flush()
+				msg = "Demoing %s axis orientation changes: %3.2f degrees counter-clockwise. FPS: %3.2f."
+				print_(msg % (axis_name, degrees, fps))
+			print ""
+		print "Demoing change in camera distance from center of projection."
+		print "Viewer distance from camera is constant."
+		for _ in range(1000):
+			start = time.clock()
+			camera_pos += I
+			viewer_pos += I
+			draw_shapes()
+			fps = 1/(time.clock() - start)
+			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
+			print_(msg % (str(camera_pos), str(viewer_pos), fps))
+		for _ in range(1000):
+			start = time.clock()
+			camera_pos -= I
+			viewer_pos -= I
+			draw_shapes()
+			fps = 1/(time.clock() - start)
+			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
+			print_(msg % (str(camera_pos), str(viewer_pos), fps))
+		print ""
+		print "Demoing change in viewer distance from camera point."
+		print "Camera position stays constant."
+		for _ in range(500):
+			start = time.clock()
+			viewer_pos -= I
+			draw_shapes()
+			fps = 1/(time.clock() - start)
+			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
+			print_(msg % (str(camera_pos), str(viewer_pos), fps))
+		print ""
+		for _ in range(500):
+			start = time.clock()
+			viewer_pos += I
+			draw_shapes()
+			fps = 1/(time.clock() - start)
+			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
+			print_(msg % (str(camera_pos), str(viewer_pos), fps))
+		print ""
 	except KeyboardInterrupt:
 		pass
 	finally:
@@ -170,24 +215,19 @@ def demo(shapes, rotations, theta):
 		turtle.bye()
 
 if __name__=="__main__":
-	#import cProfile
-	#cubes = sum([[Cube([450-200*i,450-200*j,-100], 100) for i in range(5)] for j in range(5)], [])
-	#main(cubes, pi/20, I+J)
-	#main_(Tetrahedron([0,0,100], 200), 1000, pi/200, I+J+K)
-	#cProfile.run("main_(Cube([100,100,100], 200), 1000, pi/200, I+J+K)")
 	import random
 	shapes = []
 	for i in range(25):
 		x = random.randrange(-401,-1)
-		y = random.randrange(-1000,1000)
-		z = random.randrange(-1000,1000)
-		side_length = 100
+		y = random.randrange(-200,200)
+		z = random.randrange(-200,200)
+		side_length = 50
 		if i&1:
 			shapes.append(Tetrahedron([x,y,z], side_length))	
 		else:
 			shapes.append(Cube([x,y,z], side_length))
 
-	demo(shapes, 20000, pi/200)
+	demo(shapes)
 
 
 	

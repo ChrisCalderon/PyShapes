@@ -1,9 +1,8 @@
 import turtle
-import random
 
 turtle.colormode(255)
 turtle.tracer(False)
-SCREEN = turtle.getscreen()
+
 LEVELS = 10
 DEGREES = 51
 BROWN = 0x60, 0x33, 0x11
@@ -11,10 +10,8 @@ GREEN = 0x00, 0xFF, 0x00
 dR = (BROWN[0] - GREEN[0]) / LEVELS
 dG = (BROWN[1] - GREEN[1]) / LEVELS
 dB = (BROWN[2] - GREEN[2]) / LEVELS
-psi = (5**0.5 - 1) / 2
-#turtle.speed(10)
 
-def tree(levels, degrees, distance, thickness, scale, turns=0):
+def tree(levels, degrees, distance, thickness, scale):
 	if levels == 0:
 		return
 	turtle.width(thickness)
@@ -25,7 +22,7 @@ def tree(levels, degrees, distance, thickness, scale, turns=0):
 	start = turtle.position()
 
 	turtle.left(degrees)
-	tree(levels-1, degrees, scale*distance, scale*thickness, scale, turns+1)
+	tree(levels-1, degrees, scale*distance, scale*thickness, scale)
 
 	turtle.color((r,g,b))
 	turtle.up()
@@ -33,12 +30,14 @@ def tree(levels, degrees, distance, thickness, scale, turns=0):
 	turtle.down()
 	turtle.setheading(initial_heading)
 	turtle.right(degrees)
-	tree(levels-1, degrees, scale*distance, scale*thickness, scale, turns-1)
+	tree(levels-1, degrees, scale*distance, scale*thickness, scale)
 	return
 
-turtle.left(90)
-turtle.up()
-turtle.goto(0, -100)
-turtle.down()
-tree(LEVELS, DEGREES, 200, 10, psi)
-turtle.mainloop()
+if __name__ == "__main__":
+	psi = (5**0.5 - 1) / 2
+	turtle.left(90)
+	turtle.up()
+	turtle.goto(0, -100)
+	turtle.down()
+	tree(LEVELS, DEGREES, 200, 10, psi)
+	turtle.mainloop()
