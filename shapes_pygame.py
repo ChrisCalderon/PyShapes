@@ -7,24 +7,31 @@ from math import pi, cos, sin
 I, J, K = Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)
 
 class Shape(object):
+	"""Shapes are any collection of points in space. They can only be rotated and 
+	projected with perspective onto the y/z plane right now, but hopefully projection
+	onto arbitrary planes and more kinds of projections will be added. These aren't drawn,
+	just used as a base class for other more interesting things, and used to do all the
+	math involed with all this 3d stuff."""
 	def __init__(self, start_point, *args):
 		self.make_vertices(start_point, *args)
 
 	def make_vertices(self, start_point, *args):
+		#Every Shape subclass needs to add a list of vertices
+		#to self after being called.
 		self.vertices = []
-		print "Not Implemented: __make_vertices"
+		print "Not Implemented: make_vertices"
 
 	def __getitem__(self, *args):
 		return self.vertices.__getitem__(*args)
 
-	def rotate(self, theta, d, point=(0,0,0)):
-		"""Rotates every vertex by theta radians about the line through point
-		in the direction of vector d (which must be a unit vector.)"""
+	def rotate(self, theta, d, p=(0,0,0)):
+		"""Rotates every point in the Surface by theta radians, counter-clockwise about 
+		the line through the point p in the direction of vector d (which must be a unit vector.)"""
 		cos_ = cos(theta)
 		cos_1 = 1 - cos_
 		sin_ = sin(theta)
 		u, v, w = d
-		a, b, c = point
+		a, b, c = p
 		u2, v2, w2 = u*u, v*v, w*w
 		bv, au, cw = b*v, a*u, c*w
 		t1 = a*(v2+w2) - u*(bv+cw)
@@ -49,7 +56,8 @@ class Shape(object):
 		return
 
 	def apply_perspective(self, camera_pos, orientation, viewer_pos):
-		#The plane that points are projected onto is y/z plane.
+		"""Applies a perspective projection of the points in the Surface onto the y/z plane,
+		using the supplied camer position, orientation vector, and viewer position."""
 		a, b, c = viewer_pos
 		cx, cy, cz = map(cos, orientation)
 		sx, sy, sz = map(sin, orientation)
@@ -69,10 +77,21 @@ class Shape(object):
 			append((-newx, -newy)) #perspective images are flipped, so flip it the right way
 		return transformed_vertices
 
-	def draw(self):
-		print "Not Implemented: draw"
+class WireFrame(Shape):
+	"""WireFrame objects are very fast to draw and animate, but aren't very pretty."""
+	def make_vertices(self, *args):
+		#In a WireFrame subclass, you need to provide a draw order as well as
+		#a list of vertices when you override the make_vertices function.
+		self.vertices = []
+		self.draw_order = []
 
-class Tetrahedron(Shape):
+	def draw(self, screen, vs):
+		width, height = screen.get_size()
+		#Get a list of the vertices in the drawing order, and map them to pixel coordinates.
+		points = [(x + width/2, height/2 - y) for (x, y) in [vs[i] for i in self.draw_order]]
+		pygame.draw.aalines(screen, (0,0,0), False, points, 2)
+
+class Tetrahedron(WireFrame):
 	def make_vertices(self, start_point, side_length):
 		"""start_point is the top point."""
 		vertices = []
@@ -86,16 +105,9 @@ class Tetrahedron(Shape):
 		append(vertices[-1] + base_alt*I + .5*side_length*J)
 		append(vertices[-1] - side_length*J)
 		self.vertices = vertices
+		self.draw_order = [0, 3, 2, 0, 1, 2, 3, 1]
 
-	@staticmethod
-	def draw(screen, vs):
-		draw_order = [0, 3, 2, 0, 1, 2, 3, 1]
-		width, height = screen.get_size()
-		points = [[x + width/2, height/2 - y] for (x,y) in [vs[i] for i in draw_order]]
-		pygame.draw.aalines(screen, (0,0,0), False, points, 2)
-		return
-
-class Cube(Shape):
+class Cube(WireFrame):
 	def make_vertices(self, start_point, side_length):
 		"""start_point is the upper right front corner."""
 		vertices = []
@@ -111,14 +123,7 @@ class Cube(Shape):
 		append(vertices[-1] + j)
 		append(vertices[-1] + k)
 		self.vertices = vertices
-
-	@staticmethod
-	def draw(screen, vs):
-		draw_order = [0, 1, 2, 3, 0, 7, 6, 5, 4, 7, 6, 1, 2, 5, 4, 3]
-		width, height = screen.get_size()
-		points = [[x + width/2, height/2 - y] for (x,y) in [vs[i] for i in draw_order]]
-		pygame.draw.aalines(screen, (0,0,0), False, points, 2)
-		return
+		self.draw_order = [0, 1, 2, 3, 0, 7, 6, 5, 4, 7, 6, 1, 2, 5, 4, 3]
 
 def demo(shapes):
 	def draw_shapes():
@@ -178,7 +183,6 @@ def demo(shapes):
 			fps = 1/(time.clock() - start)
 			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
 			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		print ""
 		for _ in range(500):
 			start = time.clock()
 			viewer_pos += I
@@ -186,7 +190,6 @@ def demo(shapes):
 			fps = 1/(time.clock() - start)
 			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
 			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		print ""
 	except KeyboardInterrupt:
 		pass
 	finally:
