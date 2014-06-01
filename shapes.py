@@ -1,231 +1,113 @@
 import turtle
-import time
-import sys
-from vector import Vector
-from math import pi, cos, sin
+from math import sin, cos
+from random import random as f
 
-I, J, K = Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)
+def rotate(points, angle, direction, point=(0,0,0)):
+	"""Points is collection of 3-tuples, angle is an amount to rotate in
+	radians, direction is a 3-tuple representing a direction vector, and
+	point is a 3-tuple representing a point the vector d passes through."""
+	#this function is based on a heavily refactored version of the math found
+	#at http://inside.mines.edu/~gmurray/ArbitraryAxisRotation/ .
+	#I refactored it to make heavy precomputation easier.
+	#This is to make the 3d animations as fast as possible (turtle isn't
+	#the best when it comes to speed.)
+	a, b, c = point
+	u, v, w = direction
+	c0, s = cos(angle), sin(angle)
+	c1 = 1 - c0
+	u2, v2, w2 = u*u, v*v, w*w
+	au, bv, cw = a*u, b*v, c*w
 
-class Shape(object):
-	def __init__(self, start_point, *args):
-		self.make_vertices(start_point, *args)
+	x1, x2 = c1*(a*(v2 + w2) - u*(bv + cw)) + s*(b*w - c*v), u*c1
+	y1, y2 = c1*(b*(w2 + u2) - v*(cw + au)) + s*(c*u - a*w), v*c1
+	z1, z2 = c1*(c*(u2 + v2) - w*(au + bv)) + s*(a*v - b*u), w*c1
 
-	def make_vertices(self, start_point, *args):
-		self.vertices = []
-		print "Not Implemented: __make_vertices"
+	for i, p in enumerate(points):
+		x, y, z = p
+		dotp = u*x + v*y + w*z
+		x_ = x1 + x2*dotp + x*c0 + s*(v*z - w*y)
+		y_ = y1 + y2*dotp + y*c0 + s*(w*x - u*z)
+		z_ = z1 + z2*dotp + z*c0 + s*(u*y - v*x)
+		points[i] = (x_, y_, z_)
 
-	def __getitem__(self, *args):
-		return self.vertices.__getitem__(*args)
+	return
 
-	def rotate(self, theta, d, point=(0,0,0)):
-		"""Rotates every vertex by theta radians about the line through point
-		in the direction of vector d (which must be a unit vector.)"""
-		cos_ = cos(theta)
-		cos_1 = 1 - cos_
-		sin_ = sin(theta)
-		u, v, w = d
-		a, b, c = point
-		u2, v2, w2 = u*u, v*v, w*w
-		bv, au, cw = b*v, a*u, c*w
-		t1 = a*(v2+w2) - u*(bv+cw)
-		t2 = b*(u2*w2) - v*(au+cw)
-		t3 = c*(u2*v2) - w*(au+bv)
-		t4 = b*w - c*v
-		t5 = c*u - a*w
-		t6 = a*v - b*u
+def apply_perspective(points, camera_pos, viewer_pos):
+	#computes the projection of 3d points onto 2d space (the y/z plane)
+	#based on math found at
+	#http://en.wikipedia.org/wiki/3D_projection#Perspective_projection
+	a, b, c = viewer_pos
+	d, e, f = camera_pos
+	#cx, cy, cz = map(cos, orientation)
+	#sx, sy, sz = map(sin, orientation)
+	for p in points:
+		x, y, z = p
+		x, y, z = x - d, y - e, z - f
+		#szy, czx, cyz, czy = sz*y, cz*x, cy*z, cz*y
+		#t1, t2 = cyz + sy*(szy - czx), czy - sz*x
+		#x_ = cy*(szy+czx) - sy*z
+		#y_ = sx*t1 + cx*t2
+		#z_ = cx*t1 - sx*t2
+		t4 = a/x
+		yield (b - t4*y, c - t4*z)
 
-		for p in self.vertices:
-			x, y, z = p
-			t7 = d*p #d is the direction vector, p is the vertex
-			t8 = u*t7
-			t9 = v*t7
-			t10 = w*t7
-			newx = (t1 + t8)*cos_1 + x*cos_ + (t4 + v*z - w*y)*sin_
-			newy = (t2 + t9)*cos_1 + y*cos_ + (t5 + w*x - u*z)*sin_
-			newz = (t3 + t10)*cos_1 + z*cos_ + (t6 + u*y - v*x)*sin_
-			p.x = newx
-			p.y = newy
-			p.z = newz
-		return
+def make_cube(p, s):
+	"""p is the upper right (your right) front corner, s is side length"""
+	points = []
+	add = points.append
+	x, y ,z = p
+	xs, ys, zs = x - s, y - s, z - s
+	add(p)
+	add((x, y, zs))
+	add((x, ys, zs))
+	add((x, ys, z))
+	add((xs, ys, z))
+	add((xs, ys, zs))
+	add((xs, y, zs))
+	add((xs, y, z))
+	return points
 
-	def apply_perspective(self, camera_pos, orientation, viewer_pos):
-		#The plane that points are projected onto is y/z plane.
-		a, b, c = viewer_pos
-		cx, cy, cz = map(cos, orientation)
-		sx, sy, sz = map(sin, orientation)
-		transformed_vertices = []
-		append = transformed_vertices.append
-		for v in self.vertices:
-			x, y, z = v - camera_pos
-			t1 = sz*y + cz*x
-			t2 = cz*y - sz*x
-			x_ = cy*t1 - sy*z
-			t3 = cy*z + sy*t1
-			y_ = sx*t3 + cx*t2
-			z_ = cx*t3 - sx*t2
-			t4 = a/x_
-			newx = t4*y_ - b
-			newy = t4*z_ - c
-			append((-newx, -newy)) #perspective images are flipped, so flip it the right way
-		return transformed_vertices
-
-	def draw(self):
-		print "Not Implemented: draw"
-
-class Tetrahedron(Shape):
-	def make_vertices(self, start_point, side_length):
-		"""start_point is the top point."""
-		vertices = []
-		append = vertices.append
-		start_point = Vector(*start_point)
-		height = 6**0.5/3*side_length
-		base_alt = cos(pi/6)*side_length
-		long_half = 2*base_alt/3
-		append(start_point)
-		append(vertices[-1] - height*K - long_half*I)
-		append(vertices[-1] + base_alt*I + .5*side_length*J)
-		append(vertices[-1] - side_length*J)
-		self.vertices = vertices
-
-	@staticmethod
-	def draw(vs):
+def draw_cube(cube, colors, camera, viewer):
+	"""Uses the camera position to decide which order to paint the faces.
+	Each face is treated as being as far away from the camera as the average
+	of the distances of each of it's vertices."""
+	a,b,c = camera
+	faces = zip([[0,1,2,3],[0,7,4,3],[0,1,6,7],[2,5,4,3],[1,2,5,6],[5,6,7,4]], colors)
+	#print cube
+	d = [((a-x)**2 + (b-y)**2 + (c-z)**2)**0.5 for (x,y,z) in cube]
+	ps = list(apply_perspective(cube, camera, viewer))
+	faces.sort(key=lambda ((r,s,t,u),v): (d[r]+d[s]+d[t]+d[u])/4, reverse=True)
+	for face, color in faces:
+		r,s,t,u = face
+		turtle.fillcolor(color)
 		turtle.up()
-		turtle.goto(vs[0])
+		turtle.goto(ps[r])
 		turtle.down()
-		turtle.goto(vs[3])
-		turtle.goto(vs[2])
-		turtle.goto(vs[0])
-		turtle.goto(vs[1])
-		turtle.goto(vs[2])
-		turtle.goto(vs[3])
-		turtle.goto(vs[1])
-		return
+		turtle.fill(True)
+		turtle.goto(ps[s])
+		turtle.goto(ps[t])
+		turtle.goto(ps[u])
+		turtle.goto(ps[r])
+		turtle.fill(False)
+	return
 
-class Cube(Shape):
-	def make_vertices(self, start_point, side_length):
-		"""start_point is the upper right front corner."""
-		vertices = []
-		append = vertices.append
-		start_point = Vector(*start_point)
-		i, j, k = side_length*I, side_length*J, side_length*K
-		append(start_point)
-		append(vertices[-1] - k)
-		append(vertices[-1] - j)
-		append(vertices[-1] + k)
-		append(vertices[-1] - i)
-		append(vertices[-1] - k)
-		append(vertices[-1] + j)
-		append(vertices[-1] + k)
-		self.vertices = vertices
-
-	@staticmethod
-	def draw(vs):
-		turtle.up()
-		turtle.goto(vs[0])
-		turtle.down()
-		turtle.goto(vs[1])
-		turtle.goto(vs[2])
-		turtle.goto(vs[3])
-		turtle.goto(vs[0])
-		turtle.goto(vs[7])
-		turtle.goto(vs[6])
-		turtle.goto(vs[5])
-		turtle.goto(vs[4])
-		turtle.goto(vs[7])
-		turtle.goto(vs[6])
-		turtle.goto(vs[1])
-		turtle.goto(vs[2])
-		turtle.goto(vs[5])
-		turtle.goto(vs[4])
-		turtle.goto(vs[3])	
-		return
-
-def demo(shapes):
-	def draw_shapes():
-		[shape.draw(shape.apply_perspective(camera_pos, orientation, viewer_pos)) for shape in shapes]
+def demo():
+	turtle.title("3d cube demo") 
+	cube = make_cube((200,200,200), 200)
+	colors = [(f(),f(),f()) for _ in range(6)]
+	turtle.tracer(0)
+	x = 3**0.5 / 3
+	axis = x, x, x
+	camera = 500, 200, 200
+	viewer = 550, 200, 200
+	#orientation = 0, 0, 0
+	angle = 0.001
+	while True:
+		draw_cube(cube,colors,camera,viewer)
 		turtle.update()
 		turtle.clear()
+		rotate(cube, angle, axis)
 
-	def print_(string):
-		sys.stdout.write(string + "\r")
-		sys.stdout.flush()
+if __name__ == "__main__":
+	demo()
 
-	turtle.tracer(False)
-	axis = I + J + K
-	axis *= 1./abs(axis)
-	camera_pos = Vector(250, 0, 0)
-	viewer_pos = Vector(1500, 0, 0)
-	orientation = Vector(0, 0, 0)
-
-	try:
-		print "Demoing changing camera orientation."
-		for i, axis in enumerate((I, J, K)):
-			step = pi/100*axis
-			axis_name = "x" if axis == I else ("y" if axis == J else "z")
-			for _ in range(200):
-				start = time.clock()
-				draw_shapes()
-				orientation += step
-				degrees = (orientation[i]%(2*pi))*180/pi #convert radians -> degrees
-				fps = 1/(time.clock() - start)
-				msg = "Demoing %s axis orientation changes: %3.2f degrees counter-clockwise. FPS: %3.2f."
-				print_(msg % (axis_name, degrees, fps))
-			print ""
-		print "Demoing change in camera distance from center of projection."
-		print "Viewer distance from camera is constant."
-		for _ in range(1000):
-			start = time.clock()
-			camera_pos += I
-			viewer_pos += I
-			draw_shapes()
-			fps = 1/(time.clock() - start)
-			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
-			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		for _ in range(1000):
-			start = time.clock()
-			camera_pos -= I
-			viewer_pos -= I
-			draw_shapes()
-			fps = 1/(time.clock() - start)
-			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
-			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		print ""
-		print "Demoing change in viewer distance from camera point."
-		print "Camera position stays constant."
-		for _ in range(500):
-			start = time.clock()
-			viewer_pos -= I
-			draw_shapes()
-			fps = 1/(time.clock() - start)
-			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
-			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		print ""
-		for _ in range(500):
-			start = time.clock()
-			viewer_pos += I
-			draw_shapes()
-			fps = 1/(time.clock() - start)
-			msg = "Camera position: %s. Viewer position: %s. FPS: %3.2f."
-			print_(msg % (str(camera_pos), str(viewer_pos), fps))
-		print ""
-	except KeyboardInterrupt:
-		pass
-	finally:
-		sys.stdout.write("\n")
-		turtle.bye()
-
-if __name__=="__main__":
-	import random
-	shapes = []
-	for i in range(25):
-		x = random.randrange(-401,-1)
-		y = random.randrange(-200,200)
-		z = random.randrange(-200,200)
-		side_length = 50
-		if i&1:
-			shapes.append(Tetrahedron([x,y,z], side_length))	
-		else:
-			shapes.append(Cube([x,y,z], side_length))
-
-	demo(shapes)
-	
