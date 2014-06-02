@@ -8,7 +8,7 @@ To see a demo, run `python shapes.py` in a terminal (or console if you are in Wi
 #####TODO: (I will leave the simplistic version up)
 - [ ] **Switch to using a plain Tkinter canvas instead of turtle!**
 - [ ] Use numpy to make everything quick!
-- [ ] Replace the face ordering function with something that uses the distance to the berycenter or centroid of a face. [This page](http://en.wikipedia.org/wiki/Centroid#Of_triangle_and_tetrahedron) should help.
+- [ ] Replace the face ordering function with something that uses the distance to the barycenter or centroid of a face. [This page](http://en.wikipedia.org/wiki/Centroid#Of_triangle_and_tetrahedron) should help.
 - [ ] Generalize the '''draw_cube''' function in a function that takes a list, a camera position, and a viewer position as arguments. The list argument should contain a list of points as it's first element, a list of of lists of points that represent the faces as the second element, and a list of colors, one for each face, as the last element.
 - [ ] Rewrite '''make_cube''' so that it returns a list like the one expected '''draw_cube'''
 - [ ] Implement a function like make_cube, but for tetrahedrons instead.
