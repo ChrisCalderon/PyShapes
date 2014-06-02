@@ -3,7 +3,7 @@ PyTurtle3D
 
 Simple 3d graphics using the turtle module.
 
-To see a demo, run `python shapes.py` in a terminal (or console if you are in Windows). If you have the `pygame` module installed, then you can run `python shapes_pygame.py` file, which is about twice as fast on my MacBook Pro.
+To see a demo, run `python shapes.py` in a terminal (or console if you are in Windows). If you have the `pygame` module installed, then you can run `python shapes_pygame.py` file, ~~which is about twice as fast on my MacBook Pro.~~ *EDIT*: I haven't rewritten the pygame code in a long time, there are bound to be bugs in it's old demo, and the demo is not nearly as pretty as the shapes.py one.
 
 ####TODO:
 
@@ -12,5 +12,6 @@ To see a demo, run `python shapes.py` in a terminal (or console if you are in Wi
 - [ ] Rewrite '''make_cube''' so that it returns a list like the one expected '''draw_cube'''
 - [ ] Implement a function like make_cube, but for tetrahedrons instead.
 - [ ] Perspective projection onto an arbitrary plane, [more info here](http://www.ecse.rpi.edu/~wrf/Research/Short_Notes/homogeneous.html) and [here](http://tutorial.math.lamar.edu/Classes/CalcII/EqnsOfPlanes.aspx).
+  - [ ] Fix perspective projection to work with a camera orientation vector.
 
 If you can think of any other features that would be cool just let me know!
